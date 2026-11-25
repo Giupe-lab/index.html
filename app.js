@@ -213,7 +213,11 @@ function renderTrades() {
   `).join("") : `<tr><td colspan="7" class="empty">Nessuna operazione trovata.</td></tr>`;
 }
 
-/* CALENDARIO P&L - SABATO PRIMA COLONNA, DOMENICA ULTIMA */
+/* CALENDARIO P&L
+   ORDINE COLONNE:
+   SABATO - LUNEDÌ - MARTEDÌ - MERCOLEDÌ
+   GIOVEDÌ - VENERDÌ - DOMENICA
+*/
 
 function renderCalendar() {
   const year = currentMonth.getFullYear();
@@ -230,7 +234,7 @@ function renderCalendar() {
   const first = new Date(year,month,1);
   const last = new Date(year,month+1,0);
 
-  // Indice delle colonne:
+  // Conversione del giorno reale nella colonna personalizzata.
   // Sabato = 0
   // Lunedì = 1
   // Martedì = 2
@@ -239,50 +243,47 @@ function renderCalendar() {
   // Venerdì = 5
   // Domenica = 6
 
-  const offset = first.getDay() === 6 ? 0 :
-                 first.getDay() === 0 ? 6 :
-                 first.getDay();
+  const columnForDay = day => {
+    if (day === 6) return 0;
+    if (day === 0) return 6;
+    return day;
+  };
 
-  let cells = [];
+  // Numero di settimane necessarie per il mese.
+  const firstOffset = first.getDay();
+  const numberOfWeeks = Math.ceil((firstOffset + last.getDate()) / 7);
 
-  for (let i=0;i<offset;i++) {
-    cells.push(null);
-  }
+  // Celle vuote del calendario.
+  const cells = Array(numberOfWeeks * 7).fill(null);
 
-  for (let d=1;d<=last.getDate();d++) {
-    cells.push(new Date(year,month,d));
-  }
+  // Inserimento delle date nella colonna corretta.
+  for (let day = 1; day <= last.getDate(); day++) {
+    const date = new Date(year,month,day);
 
-  while (cells.length%7!==0) {
-    cells.push(null);
+    // La settimana segue il calendario domenica-sabato,
+    // mentre le colonne vengono visualizzate nell'ordine richiesto.
+    const week = Math.floor((day - 1 + firstOffset) / 7);
+    const column = columnForDay(date.getDay());
+    const index = week * 7 + column;
+
+    cells[index] = date;
   }
 
   const arr = trades();
 
-  const headers = names.map(n=>
-    `<div class="day-name">${n}</div>`
+  const headers = names.map(name=>
+    `<div class="day-name">${name}</div>`
   ).join("");
 
-  const calendarDays = cells.map((d,index)=>{
+  const calendarDays = cells.map(d=>{
     if (!d) {
       return `<div class="day empty"></div>`;
     }
 
-    const column = index%7;
-
-    // Weekend determinato dalla colonna:
-    // prima colonna = sabato
-    // ultima colonna = domenica
-    const weekend = column===0 || column===6;
-
-    // Controllo aggiuntivo sul giorno reale della data
     const actualDay = d.getDay();
-    const isSaturday = actualDay===6;
-    const isSunday = actualDay===0;
 
-    // Se la data non corrisponde alla colonna prevista,
-    // non viene classificata come weekend.
-    const isWeekend = weekend && (isSaturday || isSunday);
+    // Sabato e domenica sono sempre weekend.
+    const isWeekend = actualDay === 6 || actualDay === 0;
 
     const key = dateKey(d);
     const daily = arr.filter(t=>dateKey(t.date)===key);
@@ -290,17 +291,18 @@ function renderCalendar() {
 
     let cls = "";
 
+    // Weekend sempre rosso.
+    // Giorni feriali colorati in base al P&L.
     if (isWeekend) {
       cls = "weekend";
-    } else if (daily.length) {
-      cls = pnl>=0 ? "profit" : "loss";
+    } else if (daily.length > 0) {
+      cls = pnl >= 0 ? "profit" : "loss";
     }
 
     return `
       <div class="day ${cls}"
         data-date="${key}"
         data-weekday="${actualDay}"
-        data-column="${column}"
         onclick="addTradeForDay('${key}')">
 
         <div class="day-number">${d.getDate()}</div>
@@ -319,7 +321,7 @@ function renderCalendar() {
     `;
   }).join("");
 
-  $("calendar-grid").innerHTML = headers+calendarDays;
+  $("calendar-grid").innerHTML = headers + calendarDays;
 
   renderWeeklySummary(cells,arr);
 
