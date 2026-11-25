@@ -215,8 +215,11 @@ function renderCalendar() {
   const last = new Date(year, month + 1, 0);
 
   // Sabato = 0, domenica = 6
-  const offset = (first.getDay() + 1) % 7;
-
+  const offset = first.getDay() === 0
+  ? 6
+  : first.getDay() === 6
+    ? 0
+    : first.getDay();
   let cells = [];
 
   for (let i = 0; i < offset; i++) cells.push(null);
