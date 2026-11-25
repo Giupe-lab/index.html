@@ -200,69 +200,87 @@ function renderTrades() {
 }
 
 function renderCalendar() {
-  const year=currentMonth.getFullYear();
-  const month=currentMonth.getMonth();
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
 
-  $("month-label").textContent=new Intl.DateTimeFormat("it-IT",{
-    month:"long",year:"numeric"
-  }).format(currentMonth);
+  $("month-label").textContent =
+    new Intl.DateTimeFormat("it-IT", {
+      month: "long",
+      year: "numeric"
+    }).format(currentMonth);
 
-  // Ordine richiesto: SABATO, LUNEDÌ...VENERDÌ, DOMENICA
-  const names=["SAB","LUN","MAR","MER","GIO","VEN","DOM"];
-  const first=new Date(year,month,1);
-  const last=new Date(year,month+1,0);
+  const names = ["SAB", "LUN", "MAR", "MER", "GIO", "VEN", "DOM"];
 
-  const index=d=>{
-    const day=d.getDay();
-    return day===6?0:day===0?6:day;
-  };
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
 
-  let cells=[];
-  for(let i=0;i<index(first);i++) cells.push(null);
-  for(let d=1;d<=last.getDate();d++) cells.push(new Date(year,month,d));
-  while(cells.length%7) cells.push(null);
+  // Sabato = 0, domenica = 6
+  const offset = (first.getDay() + 1) % 7;
 
-  const arr=trades();
+  let cells = [];
 
-  $("calendar-grid").innerHTML=
-    names.map(n=>`<div class="day-name">${n}</div>`).join("")+
-    cells.map(d=>{
-      if(!d) return `<div class="day empty"></div>`;
+  for (let i = 0; i < offset; i++) cells.push(null);
 
-      const key=dateKey(d);
-      const daily=arr.filter(t=>dateKey(t.date)===key);
-      const pnl=total(daily);
-      const weekend=d.getDay()===0||d.getDay()===6;
+  for (let d = 1; d <= last.getDate(); d++) {
+    cells.push(new Date(year, month, d));
+  }
 
-      let cls=weekend?"weekend":"";
-      if(daily.length) cls=pnl>=0?"profit":"loss";
+  while (cells.length % 7) cells.push(null);
+
+  const arr = trades();
+
+  $("calendar-grid").innerHTML =
+    names.map(n => `<div class="day-name">${n}</div>`).join("") +
+    cells.map(d => {
+      if (!d) return `<div class="day empty"></div>`;
+
+      const key = dateKey(d);
+      const daily = arr.filter(t => dateKey(t.date) === key);
+      const pnl = total(daily);
+
+      // Sabato e domenica sempre rossi
+      const weekend = d.getDay() === 6 || d.getDay() === 0;
+
+      let cls = weekend ? "weekend" : "";
+
+      if (!weekend && daily.length) {
+        cls = pnl >= 0 ? "profit" : "loss";
+      }
 
       return `
-        <div class="day ${cls}" onclick="addTradeForDay('${key}')">
+        <div class="day ${cls}"
+          onclick="addTradeForDay('${key}')">
           <div class="day-number">${d.getDate()}</div>
           <div>
-            ${daily.length?`
-              <div class="day-pnl ${pnl>=0?"positive":"negative"}">${money(pnl)}</div>
+            ${daily.length ? `
+              <div class="day-pnl ${pnl >= 0 ? "positive" : "negative"}">
+                ${money(pnl)}
+              </div>
               <div class="day-detail">${daily.length} trade</div>
-            `:`<div class="day-detail">${weekend?"Weekend":" "}</div>`}
+            ` : `
+              <div class="day-detail">${weekend ? "Weekend" : ""}</div>
+            `}
           </div>
         </div>
       `;
     }).join("");
 
-  renderWeeklySummary(cells,arr);
-  const monthly=arr.filter(t=>{
-    const d=new Date(t.date);
-    return d.getFullYear()===year&&d.getMonth()===month;
+  renderWeeklySummary(cells, arr);
+
+  const monthly = arr.filter(t => {
+    const d = new Date(t.date);
+    return d.getFullYear() === year && d.getMonth() === month;
   });
 
-  const s=calculate(monthly);
+  const s = calculate(monthly);
 
-  $("calendar-totals").innerHTML=
-    metric("P&L mensile",money(s.pnl),s.pnl>=0?"positive":"negative")+
-    metric("Trade",s.count)+
-    metric("Win Rate",percent(s.rate))+
-    metric("Media per trade",money(s.count?s.pnl/s.count:0));
+  $("calendar-totals").innerHTML =
+    metric("P&L mensile", money(s.pnl),
+      s.pnl >= 0 ? "positive" : "negative") +
+    metric("Trade", s.count) +
+    metric("Win Rate", percent(s.rate)) +
+    metric("Media per trade",
+      money(s.count ? s.pnl / s.count : 0));
 }
 
 function renderWeeklySummary(cells,arr) {
