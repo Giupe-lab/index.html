@@ -17,9 +17,12 @@ function load() {
     const saved = JSON.parse(localStorage.getItem(STORAGE));
     if (saved) data = {...data,...saved};
   } catch(e) {}
-  if (!data.accounts.length) {
+
+  if (!Array.isArray(data.accounts) || !data.accounts.length) {
     data.accounts = [{id:"main",name:"Account principale",provider:"",capital:0,type:"Live"}];
   }
+
+  if (!Array.isArray(data.trades)) data.trades = [];
 }
 
 function save() {
@@ -32,7 +35,9 @@ function trades() {
 
 function money(n) {
   return new Intl.NumberFormat("it-IT",{
-    style:"currency",currency:data.currency,maximumFractionDigits:2
+    style:"currency",
+    currency:data.currency,
+    maximumFractionDigits:2
   }).format(Number(n)||0);
 }
 
@@ -58,12 +63,16 @@ function winRate(arr) {
 
 function safe(s) {
   return String(s??"").replace(/[&<>"']/g,c=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
   })[c]);
 }
 
 function dateKey(value) {
-  const d=new Date(value);
+  const d = new Date(value);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
@@ -76,10 +85,11 @@ function metric(label,value,cls="",hint="") {
 }
 
 function calculate(arr) {
-  const win=wins(arr);
-  const loss=losses(arr);
-  const grossWin=total(win);
-  const grossLoss=Math.abs(total(loss));
+  const win = wins(arr);
+  const loss = losses(arr);
+  const grossWin = total(win);
+  const grossLoss = Math.abs(total(loss));
+
   return {
     pnl:total(arr),
     win:win.length,
@@ -95,14 +105,14 @@ function calculate(arr) {
 }
 
 function renderAccountSelector() {
-  $("active-account").innerHTML=data.accounts.map(a=>
+  $("active-account").innerHTML = data.accounts.map(a=>
     `<option value="${a.id}" ${a.id===data.activeAccount?"selected":""}>${safe(a.name)}</option>`
   ).join("");
 }
 
 function renderDashboard() {
-  const arr=trades();
-  const s=calculate(arr);
+  const arr = trades();
+  const s = calculate(arr);
 
   $("dashboard-cards").innerHTML =
     metric("Net P&L",money(s.pnl),s.pnl>=0?"positive":"negative")+
@@ -118,9 +128,9 @@ function renderDashboard() {
     metric("Best Trade",money(s.best),"positive")+
     metric("Worst Trade",money(s.worst),"negative");
 
-  const recent=[...arr].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,7);
+  const recent = [...arr].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,7);
 
-  $("recent-trades").innerHTML=recent.length?recent.map(t=>`
+  $("recent-trades").innerHTML = recent.length ? recent.map(t=>`
     <div class="account-item">
       <div>
         <b>${safe(t.symbol)}</b>
@@ -128,26 +138,26 @@ function renderDashboard() {
       </div>
       <b class="${t.pnl>=0?"positive":"negative"}">${money(t.pnl)}</b>
     </div>
-  `).join(""):`<div class="empty">Nessun trade inserito.</div>`;
+  `).join("") : `<div class="empty">Nessun trade inserito.</div>`;
 
   drawEquity(arr);
 }
 
 function drawEquity(arr) {
-  const ordered=[...arr].sort((a,b)=>a.date.localeCompare(b.date));
-  let balance=0;
-  const values=[0];
-  const labels=["Inizio"];
+  const ordered = [...arr].sort((a,b)=>a.date.localeCompare(b.date));
+  let balance = 0;
+  const values = [0];
+  const labels = ["Inizio"];
 
   ordered.forEach(t=>{
-    balance+=Number(t.pnl);
+    balance += Number(t.pnl);
     values.push(balance);
     labels.push(new Date(t.date).toLocaleDateString("it-IT"));
   });
 
-  if(equityChart) equityChart.destroy();
+  if (equityChart) equityChart.destroy();
 
-  equityChart=new Chart($("equity-chart"),{
+  equityChart = new Chart($("equity-chart"),{
     type:"line",
     data:{
       labels,
@@ -174,16 +184,20 @@ function drawEquity(arr) {
 }
 
 function renderTrades() {
-  const query=$("trade-search").value.toLowerCase();
-  const filter=$("trade-filter").value;
+  const query = $("trade-search").value.toLowerCase();
+  const filter = $("trade-filter").value;
 
-  const arr=[...trades()].sort((a,b)=>b.date.localeCompare(a.date)).filter(t=>{
-    const matches=(t.symbol+" "+(t.notes||"")+" "+(t.setup||"")).toLowerCase().includes(query);
-    const result=filter==="all"||(filter==="win"&&t.pnl>0)||(filter==="loss"&&t.pnl<0);
-    return matches&&result;
-  });
+  const arr = [...trades()]
+    .sort((a,b)=>b.date.localeCompare(a.date))
+    .filter(t=>{
+      const matches = (t.symbol+" "+(t.notes||"")+" "+(t.setup||"")).toLowerCase().includes(query);
+      const result = filter==="all" ||
+        (filter==="win"&&t.pnl>0) ||
+        (filter==="loss"&&t.pnl<0);
+      return matches&&result;
+    });
 
-  $("trade-table").innerHTML=arr.length?arr.map(t=>`
+  $("trade-table").innerHTML = arr.length ? arr.map(t=>`
     <tr>
       <td>${new Date(t.date).toLocaleString("it-IT")}</td>
       <td><b>${safe(t.symbol)}</b></td>
@@ -196,106 +210,150 @@ function renderTrades() {
         <button class="delete-button small-button" onclick="deleteTrade('${t.id}')">Elimina</button>
       </td>
     </tr>
-  `).join(""):`<tr><td colspan="7" class="empty">Nessuna operazione trovata.</td></tr>`;
+  `).join("") : `<tr><td colspan="7" class="empty">Nessuna operazione trovata.</td></tr>`;
 }
+
+/* CALENDARIO P&L - SABATO PRIMA COLONNA, DOMENICA ULTIMA */
 
 function renderCalendar() {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
 
   $("month-label").textContent =
-    new Intl.DateTimeFormat("it-IT", {
-      month: "long",
-      year: "numeric"
+    new Intl.DateTimeFormat("it-IT",{
+      month:"long",
+      year:"numeric"
     }).format(currentMonth);
 
-  const names = ["SAB", "LUN", "MAR", "MER", "GIO", "VEN", "DOM"];
+  const names = ["SAB","LUN","MAR","MER","GIO","VEN","DOM"];
 
-  const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
+  const first = new Date(year,month,1);
+  const last = new Date(year,month+1,0);
 
-  // Sabato = 0, domenica = 6
-  const offset = first.getDay() === 0
-  ? 6
-  : first.getDay() === 6
-    ? 0
-    : first.getDay();
+  // Indice delle colonne:
+  // Sabato = 0
+  // Lunedì = 1
+  // Martedì = 2
+  // Mercoledì = 3
+  // Giovedì = 4
+  // Venerdì = 5
+  // Domenica = 6
+
+  const offset = first.getDay() === 6 ? 0 :
+                 first.getDay() === 0 ? 6 :
+                 first.getDay();
+
   let cells = [];
 
-  for (let i = 0; i < offset; i++) cells.push(null);
-
-  for (let d = 1; d <= last.getDate(); d++) {
-    cells.push(new Date(year, month, d));
+  for (let i=0;i<offset;i++) {
+    cells.push(null);
   }
 
-  while (cells.length % 7) cells.push(null);
+  for (let d=1;d<=last.getDate();d++) {
+    cells.push(new Date(year,month,d));
+  }
+
+  while (cells.length%7!==0) {
+    cells.push(null);
+  }
 
   const arr = trades();
 
-  $("calendar-grid").innerHTML =
-    names.map(n => `<div class="day-name">${n}</div>`).join("") +
-    cells.map(d => {
-      if (!d) return `<div class="day empty"></div>`;
+  const headers = names.map(n=>
+    `<div class="day-name">${n}</div>`
+  ).join("");
 
-      const key = dateKey(d);
-      const daily = arr.filter(t => dateKey(t.date) === key);
-      const pnl = total(daily);
+  const calendarDays = cells.map((d,index)=>{
+    if (!d) {
+      return `<div class="day empty"></div>`;
+    }
 
-      // Sabato e domenica sempre rossi
-      const weekend = d.getDay() === 6 || d.getDay() === 0;
+    const column = index%7;
 
-      let cls = weekend ? "weekend" : "";
+    // Weekend determinato dalla colonna:
+    // prima colonna = sabato
+    // ultima colonna = domenica
+    const weekend = column===0 || column===6;
 
-      if (!weekend && daily.length) {
-        cls = pnl >= 0 ? "profit" : "loss";
-      }
+    // Controllo aggiuntivo sul giorno reale della data
+    const actualDay = d.getDay();
+    const isSaturday = actualDay===6;
+    const isSunday = actualDay===0;
 
-      return `
-        <div class="day ${cls}"
-          onclick="addTradeForDay('${key}')">
-          <div class="day-number">${d.getDate()}</div>
-          <div>
-            ${daily.length ? `
-              <div class="day-pnl ${pnl >= 0 ? "positive" : "negative"}">
-                ${money(pnl)}
-              </div>
-              <div class="day-detail">${daily.length} trade</div>
-            ` : `
-              <div class="day-detail">${weekend ? "Weekend" : ""}</div>
-            `}
-          </div>
+    // Se la data non corrisponde alla colonna prevista,
+    // non viene classificata come weekend.
+    const isWeekend = weekend && (isSaturday || isSunday);
+
+    const key = dateKey(d);
+    const daily = arr.filter(t=>dateKey(t.date)===key);
+    const pnl = total(daily);
+
+    let cls = "";
+
+    if (isWeekend) {
+      cls = "weekend";
+    } else if (daily.length) {
+      cls = pnl>=0 ? "profit" : "loss";
+    }
+
+    return `
+      <div class="day ${cls}"
+        data-date="${key}"
+        data-weekday="${actualDay}"
+        data-column="${column}"
+        onclick="addTradeForDay('${key}')">
+
+        <div class="day-number">${d.getDate()}</div>
+
+        <div>
+          ${daily.length ? `
+            <div class="day-pnl ${pnl>=0?"positive":"negative"}">
+              ${money(pnl)}
+            </div>
+            <div class="day-detail">${daily.length} trade</div>
+          ` : `
+            <div class="day-detail">${isWeekend?"Weekend":""}</div>
+          `}
         </div>
-      `;
-    }).join("");
+      </div>
+    `;
+  }).join("");
 
-  renderWeeklySummary(cells, arr);
+  $("calendar-grid").innerHTML = headers+calendarDays;
 
-  const monthly = arr.filter(t => {
+  renderWeeklySummary(cells,arr);
+
+  const monthly = arr.filter(t=>{
     const d = new Date(t.date);
-    return d.getFullYear() === year && d.getMonth() === month;
+    return d.getFullYear()===year && d.getMonth()===month;
   });
 
   const s = calculate(monthly);
 
   $("calendar-totals").innerHTML =
-    metric("P&L mensile", money(s.pnl),
-      s.pnl >= 0 ? "positive" : "negative") +
-    metric("Trade", s.count) +
-    metric("Win Rate", percent(s.rate)) +
-    metric("Media per trade",
-      money(s.count ? s.pnl / s.count : 0));
+    metric("P&L mensile",money(s.pnl),s.pnl>=0?"positive":"negative")+
+    metric("Trade",s.count)+
+    metric("Win Rate",percent(s.rate))+
+    metric("Media per trade",money(s.count?s.pnl/s.count:0));
 }
 
 function renderWeeklySummary(cells,arr) {
-  let weeks=[];
+  const weeks = [];
 
-  for(let i=0;i<cells.length;i+=7) {
-    const days=cells.slice(i,i+7).filter(Boolean);
-    const daily=arr.filter(t=>days.some(d=>dateKey(d)===dateKey(t.date)));
-    weeks.push({pnl:total(daily),count:daily.length});
+  for (let i=0;i<cells.length;i+=7) {
+    const days = cells.slice(i,i+7).filter(Boolean);
+
+    const daily = arr.filter(t=>
+      days.some(d=>dateKey(d)===dateKey(t.date))
+    );
+
+    weeks.push({
+      pnl:total(daily),
+      count:daily.length
+    });
   }
 
-  $("weekly-summary").innerHTML=weeks.map((w,i)=>`
+  $("weekly-summary").innerHTML = weeks.map((w,i)=>`
     <div class="week-box">
       <span>Settimana ${i+1}</span>
       <b class="${w.pnl>=0?"positive":"negative"}">${money(w.pnl)}</b>
@@ -305,19 +363,19 @@ function renderWeeklySummary(cells,arr) {
 }
 
 function renderStats() {
-  const arr=trades();
-  const s=calculate(arr);
+  const arr = trades();
+  const s = calculate(arr);
 
-  $("stats-cards").innerHTML=
+  $("stats-cards").innerHTML =
     metric("Profit Factor",Number.isFinite(s.profitFactor)?s.profitFactor.toFixed(2):"∞")+
     metric("Expectancy",money(arr.length?s.pnl/arr.length:0),s.pnl>=0?"positive":"negative")+
     metric("Best Trade",money(s.best),"positive")+
     metric("Worst Trade",money(s.worst),"negative")+
     metric("Win Rate",percent(s.rate));
 
-  if(distributionChart) distributionChart.destroy();
+  if (distributionChart) distributionChart.destroy();
 
-  distributionChart=new Chart($("distribution-chart"),{
+  distributionChart = new Chart($("distribution-chart"),{
     type:"doughnut",
     data:{
       labels:["Vincenti","Perdenti","Pareggio"],
@@ -330,36 +388,48 @@ function renderStats() {
     options:{
       responsive:true,
       maintainAspectRatio:false,
-      plugins:{legend:{position:"bottom",labels:{color:"#dce6f7"}}}
+      plugins:{
+        legend:{
+          position:"bottom",
+          labels:{color:"#dce6f7"}
+        }
+      }
     }
   });
 
-  const groups={};
+  const groups = {};
 
   arr.forEach(t=>{
-    if(!groups[t.symbol]) groups[t.symbol]={pnl:0,count:0};
-    groups[t.symbol].pnl+=Number(t.pnl);
+    if (!groups[t.symbol]) groups[t.symbol]={pnl:0,count:0};
+    groups[t.symbol].pnl += Number(t.pnl);
     groups[t.symbol].count++;
   });
 
-  $("symbol-performance").innerHTML=Object.entries(groups).length?
-    Object.entries(groups).sort((a,b)=>b[1].pnl-a[1].pnl).map(([symbol,v])=>`
-      <div class="account-item">
-        <div><b>${safe(symbol)}</b><div class="note">${v.count} operazioni</div></div>
-        <b class="${v.pnl>=0?"positive":"negative"}">${money(v.pnl)}</b>
-      </div>
-    `).join(""):`<div class="empty">Nessun dato.</div>`;
+  $("symbol-performance").innerHTML = Object.entries(groups).length ?
+    Object.entries(groups)
+      .sort((a,b)=>b[1].pnl-a[1].pnl)
+      .map(([symbol,v])=>`
+        <div class="account-item">
+          <div>
+            <b>${safe(symbol)}</b>
+            <div class="note">${v.count} operazioni</div>
+          </div>
+          <b class="${v.pnl>=0?"positive":"negative"}">${money(v.pnl)}</b>
+        </div>
+      `).join("") :
+    `<div class="empty">Nessun dato.</div>`;
 
-  const months={};
+  const months = {};
 
   arr.forEach(t=>{
-    const d=new Date(t.date);
-    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-    if(!months[key]) months[key]=[];
+    const d = new Date(t.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+
+    if (!months[key]) months[key]=[];
     months[key].push(t);
   });
 
-  $("monthly-table").innerHTML=Object.entries(months)
+  $("monthly-table").innerHTML = Object.entries(months)
     .sort((a,b)=>b[0].localeCompare(a[0]))
     .map(([key,list])=>`
       <tr>
@@ -368,13 +438,13 @@ function renderStats() {
         <td>${percent(winRate(list))}</td>
         <td class="${total(list)>=0?"positive":"negative"}">${money(total(list))}</td>
       </tr>
-    `).join("")||`<tr><td colspan="4" class="empty">Nessun dato.</td></tr>`;
+    `).join("") || `<tr><td colspan="4" class="empty">Nessun dato.</td></tr>`;
 }
 
 function renderAccounts() {
   renderAccountSelector();
 
-  $("account-list").innerHTML=data.accounts.map(a=>`
+  $("account-list").innerHTML = data.accounts.map(a=>`
     <div class="account-item">
       <div>
         <b>${safe(a.name)}</b>
@@ -389,18 +459,24 @@ function renderAccounts() {
   `).join("");
 }
 
-window.selectAccount=id=>{
-  data.activeAccount=id;
+window.selectAccount = id=>{
+  data.activeAccount = id;
   save();
   renderAll();
 };
 
-window.removeAccount=id=>{
-  if(data.accounts.length<=1) return alert("Devi mantenere almeno un account.");
-  if(!confirm("Eliminare questo account e i relativi trade?")) return;
-  data.accounts=data.accounts.filter(a=>a.id!==id);
-  data.trades=data.trades.filter(t=>t.accountId!==id);
-  if(data.activeAccount===id) data.activeAccount=data.accounts[0].id;
+window.removeAccount = id=>{
+  if (data.accounts.length<=1) return alert("Devi mantenere almeno un account.");
+
+  if (!confirm("Eliminare questo account e i relativi trade?")) return;
+
+  data.accounts = data.accounts.filter(a=>a.id!==id);
+  data.trades = data.trades.filter(t=>t.accountId!==id);
+
+  if (data.activeAccount===id) {
+    data.activeAccount = data.accounts[0].id;
+  }
+
   save();
   renderAll();
 };
@@ -415,10 +491,15 @@ function renderAll() {
 }
 
 function showPage(id) {
-  document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));
-  document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.page===id));
+  document.querySelectorAll(".page").forEach(p=>
+    p.classList.toggle("active",p.id===id)
+  );
 
-  const titles={
+  document.querySelectorAll(".nav").forEach(b=>
+    b.classList.toggle("active",b.dataset.page===id)
+  );
+
+  const titles = {
     dashboard:["Dashboard","Panoramica delle tue performance"],
     calendar:["Calendario P&L","Risultati giornalieri e settimanali"],
     trades:["Trade Journal","Storico delle operazioni"],
@@ -427,24 +508,32 @@ function showPage(id) {
     settings:["Impostazioni","Preferenze e backup"]
   };
 
-  $("page-title").textContent=titles[id][0];
-  $("page-subtitle").textContent=titles[id][1];
+  $("page-title").textContent = titles[id][0];
+  $("page-subtitle").textContent = titles[id][1];
 
-  if(id==="calendar") renderCalendar();
-  if(id==="trades") renderTrades();
-  if(id==="stats") renderStats();
-  if(id==="accounts") renderAccounts();
+  if (id==="calendar") renderCalendar();
+  if (id==="trades") renderTrades();
+  if (id==="stats") renderStats();
+  if (id==="accounts") renderAccounts();
+}
+
+function localDateTimeValue(date=new Date()) {
+  const pad = n=>String(n).padStart(2,"0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function openTrade(trade=null,date=null) {
   $("trade-form").reset();
-  $("trade-id").value=trade?.id||"";
-  $("modal-title").textContent=trade?"Modifica trade":"Nuovo trade";
+  $("trade-id").value = trade?.id||"";
+  $("modal-title").textContent = trade?"Modifica trade":"Nuovo trade";
 
-  $("trade-date").value=trade?.date||date||new Date().toISOString().slice(0,16);
+  $("trade-date").value = trade?.date||date||localDateTimeValue();
 
   ["symbol","direction","volume","entry","exit","pnl","commission","setup","session","notes"].forEach(k=>{
-    if(trade&&trade[k]!==undefined) $(k).value=trade[k];
+    if (trade&&trade[k]!==undefined) {
+      $(k).value = trade[k];
+    }
   });
 
   $("trade-modal").classList.add("show");
@@ -454,28 +543,29 @@ function closeTrade() {
   $("trade-modal").classList.remove("show");
 }
 
-window.editTrade=id=>{
-  const t=data.trades.find(t=>t.id===id);
-  if(t) openTrade(t);
+window.editTrade = id=>{
+  const t = data.trades.find(t=>t.id===id);
+  if (t) openTrade(t);
 };
 
-window.deleteTrade=id=>{
-  if(!confirm("Eliminare definitivamente questa operazione?")) return;
-  data.trades=data.trades.filter(t=>t.id!==id);
+window.deleteTrade = id=>{
+  if (!confirm("Eliminare definitivamente questa operazione?")) return;
+
+  data.trades = data.trades.filter(t=>t.id!==id);
   save();
   renderAll();
 };
 
-window.addTradeForDay=key=>{
+window.addTradeForDay = key=>{
   openTrade(null,key+"T12:00");
 };
 
 $("trade-form").addEventListener("submit",e=>{
   e.preventDefault();
 
-  const id=$("trade-id").value||crypto.randomUUID();
+  const id = $("trade-id").value||crypto.randomUUID();
 
-  const t={
+  const t = {
     id,
     accountId:data.activeAccount,
     date:$("trade-date").value,
@@ -491,8 +581,9 @@ $("trade-form").addEventListener("submit",e=>{
     notes:$("notes").value
   };
 
-  const index=data.trades.findIndex(x=>x.id===id);
-  if(index>=0) data.trades[index]=t;
+  const index = data.trades.findIndex(x=>x.id===id);
+
+  if (index>=0) data.trades[index]=t;
   else data.trades.push(t);
 
   save();
@@ -512,7 +603,7 @@ function closeAccount() {
 $("account-form").addEventListener("submit",e=>{
   e.preventDefault();
 
-  const a={
+  const a = {
     id:crypto.randomUUID(),
     name:$("account-name").value.trim(),
     provider:$("account-provider").value.trim(),
@@ -521,89 +612,100 @@ $("account-form").addEventListener("submit",e=>{
   };
 
   data.accounts.push(a);
-  data.activeAccount=a.id;
+  data.activeAccount = a.id;
+
   save();
   closeAccount();
   renderAll();
 });
 
 // NAVIGAZIONE
+
 document.querySelectorAll(".nav").forEach(b=>{
   b.addEventListener("click",()=>showPage(b.dataset.page));
 });
 
 // MODALI
-$("new-trade").onclick=()=>openTrade();
-$("close-modal").onclick=$("cancel-modal").onclick=closeTrade;
-$("add-account").onclick=openAccount;
-$("close-account").onclick=$("cancel-account").onclick=closeAccount;
+
+$("new-trade").onclick = ()=>openTrade();
+$("close-modal").onclick = $("cancel-modal").onclick = closeTrade;
+$("add-account").onclick = openAccount;
+$("close-account").onclick = $("cancel-account").onclick = closeAccount;
 
 // CALENDARIO
-$("prev-month").onclick=()=>{
+
+$("prev-month").onclick = ()=>{
   currentMonth.setMonth(currentMonth.getMonth()-1);
   renderCalendar();
 };
 
-$("next-month").onclick=()=>{
+$("next-month").onclick = ()=>{
   currentMonth.setMonth(currentMonth.getMonth()+1);
   renderCalendar();
 };
 
-$("current-month").onclick=()=>{
-  currentMonth=new Date();
+$("current-month").onclick = ()=>{
+  currentMonth = new Date();
   renderCalendar();
 };
 
 // FILTRI
+
 $("trade-search").addEventListener("input",renderTrades);
 $("trade-filter").addEventListener("change",renderTrades);
 
 $("active-account").addEventListener("change",e=>{
-  data.activeAccount=e.target.value;
+  data.activeAccount = e.target.value;
   save();
   renderAll();
 });
 
 // CSV
-$("export-csv").onclick=()=>{
-  const columns=["date","symbol","direction","volume","entry","exit","pnl","commission","setup","session","notes"];
 
-  const rows=[
+$("export-csv").onclick = ()=>{
+  const columns = ["date","symbol","direction","volume","entry","exit","pnl","commission","setup","session","notes"];
+
+  const rows = [
     columns.join(";"),
-    ...trades().map(t=>columns.map(k=>`"${String(t[k]??"").replace(/"/g,'""')}"`).join(";"))
+    ...trades().map(t=>
+      columns.map(k=>`"${String(t[k]??"").replace(/"/g,'""')}"`).join(";")
+    )
   ];
 
   downloadFile("tradepulse-trades.csv","\ufeff"+rows.join("\n"),"text/csv;charset=utf-8");
 };
 
 // BACKUP
+
 function downloadFile(name,content,type) {
-  const blob=new Blob([content],{type});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url;
-  a.download=name;
+  const blob = new Blob([content],{type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = name;
   a.click();
+
   URL.revokeObjectURL(url);
 }
 
-$("backup").onclick=()=>{
+$("backup").onclick = ()=>{
   downloadFile("tradepulse-backup.json",JSON.stringify(data,null,2),"application/json");
 };
 
-$("restore").onchange=async e=>{
-  const file=e.target.files[0];
-  if(!file) return;
+$("restore").onchange = async e=>{
+  const file = e.target.files[0];
+  if (!file) return;
 
   try {
-    const imported=JSON.parse(await file.text());
+    const imported = JSON.parse(await file.text());
 
-    if(!Array.isArray(imported.trades)||!Array.isArray(imported.accounts)) {
+    if (!Array.isArray(imported.trades)||!Array.isArray(imported.accounts)) {
       throw new Error("Backup non valido");
     }
 
-    if(confirm("Il backup sostituirà i dati attuali. Continuare?")) {
-      data={...data,...imported};
+    if (confirm("Il backup sostituirà i dati attuali. Continuare?")) {
+      data = {...data,...imported};
       save();
       renderAll();
       alert("Backup importato correttamente.");
@@ -612,20 +714,22 @@ $("restore").onchange=async e=>{
     alert("Impossibile importare il file.");
   }
 
-  e.target.value="";
+  e.target.value = "";
 };
 
 // IMPOSTAZIONI
-$("currency").value=data.currency;
 
-$("save-settings").onclick=()=>{
-  data.currency=$("currency").value;
+$("currency").value = data.currency;
+
+$("save-settings").onclick = ()=>{
+  data.currency = $("currency").value;
   save();
   renderAll();
   alert("Impostazioni salvate.");
 };
 
 // AVVIO
+
 load();
-$("currency").value=data.currency;
+$("currency").value = data.currency;
 renderAll();
