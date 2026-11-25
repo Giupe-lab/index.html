@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111827">
+  <title>TradePulse | Trading Journal</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">Trade<span>Pulse</span></div>
+    <nav>
+      <button class="nav active" data-page="dashboard">▦ Dashboard</button>
+      <button class="nav" data-page="calendar">▦ Calendario P&L</button>
+      <button class="nav" data-page="trades">↗ Trade Journal</button>
+      <button class="nav" data-page="stats">◷ Statistiche</button>
+      <button class="nav" data-page="accounts">▣ Account</button>
+      <button class="nav" data-page="settings">⚙ Impostazioni</button>
+    </nav>
+    <div class="sidebar-bottom">TRADING PERFORMANCE<br>WORKSPACE · 1.0</div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <h1 id="page-title">Dashboard</h1>
+        <p id="page-subtitle">Panoramica delle tue performance</p>
+      </div>
+      <div class="top-actions">
+        <select id="active-account"></select>
+        <button class="primary" id="new-trade">+ Nuovo trade</button>
+      </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section class="page active" id="dashboard">
+      <div class="stats-grid" id="dashboard-cards"></div>
+
+      <div class="content-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Equity Curve</h2>
+            <span class="tag">Performance cumulativa</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="equity-chart"></canvas>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading"><h2>Ultime operazioni</h2></div>
+          <div id="recent-trades"></div>
+        </article>
+      </div>
+
+      <div class="stats-grid secondary-grid" id="dashboard-extra"></div>
+    </section>
+
+    <!-- CALENDAR -->
+    <section class="page" id="calendar">
+      <article class="panel">
+        <div class="calendar-toolbar">
+          <div class="month-controls">
+            <button class="secondary" id="prev-month">←</button>
+            <h2 id="month-label"></h2>
+            <button class="secondary" id="next-month">→</button>
+          </div>
+          <button class="secondary" id="current-month">Oggi</button>
+        </div>
+
+        <div class="calendar-layout">
+          <div class="weekly-summary" id="weekly-summary"></div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <div class="stats-grid calendar-totals" id="calendar-totals"></div>
+      </article>
+    </section>
+
+    <!-- TRADE JOURNAL -->
+    <section class="page" id="trades">
+      <article class="panel">
+        <div class="filters">
+          <input id="trade-search" placeholder="Cerca simbolo o note...">
+          <select id="trade-filter">
+            <option value="all">Tutti i risultati</option>
+            <option value="win">Profittevoli</option>
+            <option value="loss">In perdita</option>
+          </select>
+          <button class="secondary" id="export-csv">Esporta CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Simbolo</th>
+                <th>Direzione</th>
+                <th>Lotti</th>
+                <th>Risultato</th>
+                <th>Setup</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="trade-table"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <!-- STATISTICS -->
+    <section class="page" id="stats">
+      <div class="stats-grid" id="stats-cards"></div>
+      <div class="content-grid">
+        <article class="panel">
+          <h2>Distribuzione risultati</h2>
+          <div class="chart-container small-chart">
+            <canvas id="distribution-chart"></canvas>
+          </div>
+        </article>
+        <article class="panel">
+          <h2>Performance per strumento</h2>
+          <div id="symbol-performance"></div>
+        </article>
+      </div>
+      <article class="panel spaced">
+        <h2>Riepilogo mensile</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Mese</th><th>Trade</th><th>Win rate</th><th>P&L</th></tr></thead>
+            <tbody id="monthly-table"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <!-- ACCOUNTS -->
+    <section class="page" id="accounts">
+      <article class="panel">
+        <div class="panel-heading">
+          <h2>I miei account</h2>
+          <button class="primary" id="add-account">+ Aggiungi account</button>
+        </div>
+        <div id="account-list"></div>
+      </article>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="page" id="settings">
+      <div class="content-grid">
+        <article class="panel">
+          <h2>Preferenze</h2>
+          <div class="field">
+            <label>Valuta</label>
+            <select id="currency">
+              <option value="EUR">EUR (€)</option>
+              <option value="USD">USD ($)</option>
+              <option value="GBP">GBP (£)</option>
+            </select>
+          </div>
+          <button class="primary spaced" id="save-settings">Salva impostazioni</button>
+        </article>
+
+        <article class="panel">
+          <h2>Backup dei dati</h2>
+          <p class="muted">Salva una copia dei tuoi account e delle operazioni oppure importa un backup precedente.</p>
+          <div class="button-row">
+            <button class="secondary" id="backup">Scarica backup JSON</button>
+            <label class="secondary file-label">
+              Importa backup
+              <input type="file" id="restore" accept=".json">
+            </label>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- TRADE MODAL -->
+<div class="modal-overlay" id="trade-modal">
+  <div class="modal">
+    <div class="modal-heading">
+      <h2 id="modal-title">Nuovo trade</h2>
+      <button class="icon-button" id="close-modal">✕</button>
+    </div>
+
+    <form id="trade-form">
+      <input type="hidden" id="trade-id">
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Data e ora *</label>
+          <input type="datetime-local" id="trade-date" required>
+        </div>
+
+        <div class="field">
+          <label>Strumento *</label>
+          <input id="symbol" placeholder="XAUUSD" required>
+        </div>
+
+        <div class="field">
+          <label>Direzione</label>
+          <select id="direction">
+            <option>Long</option>
+            <option>Short</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Volume / lotti</label>
+          <input type="number" id="volume" step="0.01" min="0">
+        </div>
+
+        <div class="field">
+          <label>Prezzo ingresso</label>
+          <input type="number" id="entry" step="any">
+        </div>
+
+        <div class="field">
+          <label>Prezzo uscita</label>
+          <input type="number" id="exit" step="any">
+        </div>
+
+        <div class="field">
+          <label>P&L netto *</label>
+          <input type="number" id="pnl" step="0.01" required>
+        </div>
+
+        <div class="field">
+          <label>Commissioni</label>
+          <input type="number" id="commission" step="0.01" value="0">
+        </div>
+
+        <div class="field">
+          <label>Strategia / Setup</label>
+          <input id="setup" placeholder="Breakout, pullback...">
+        </div>
+
+        <div class="field">
+          <label>Sessione</label>
+          <select id="session">
+            <option value="">Non specificata</option>
+            <option>Asia</option>
+            <option>Londra</option>
+            <option>New York</option>
+            <option>Overlap</option>
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>Note operative</label>
+          <textarea id="notes" rows="3" placeholder="Analisi, motivazione, emozioni..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancel-modal">Annulla</button>
+        <button type="submit" class="primary">Salva operazione</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ACCOUNT MODAL -->
+<div class="modal-overlay" id="account-modal">
+  <div class="modal compact-modal">
+    <div class="modal-heading">
+      <h2>Nuovo account</h2>
+      <button class="icon-button" id="close-account">✕</button>
+    </div>
+    <form id="account-form">
+      <div class="field">
+        <label>Nome account *</label>
+        <input id="account-name" placeholder="Es. FundedNext 50K" required>
+      </div>
+      <div class="field">
+        <label>Broker / Prop Firm</label>
+        <input id="account-provider" placeholder="Es. Vantage, FTMO...">
+      </div>
+      <div class="field">
+        <label>Capitale nominale</label>
+        <input id="account-capital" type="number" step="0.01">
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="account-type">
+          <option>Demo</option>
+          <option>Live</option>
+          <option>Prop Firm Challenge</option>
+          <option>Prop Firm Funded</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancel-account">Annulla</button>
+        <button class="primary" type="submit">Crea account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
